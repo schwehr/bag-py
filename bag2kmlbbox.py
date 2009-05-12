@@ -27,10 +27,12 @@ from lxml import etree
 import h5py
 
 
-def bag2kmlbbox(in_name,out_name, verbose=False):
+def bag2kmlbbox(in_name,out_file, title=None, kml_complete=True, verbose=False):
     v = verbose
     f = h5py.File(in_name) #'H11302_OLS_OSS/H11302_2m_1.bag')
-    o = file(out_name,'w')
+    #o = file(out_name,'w')
+    # FIX: if out_file is a string, then open
+    o = out_file
     #print f.listobjects()
     #print f.listitems()
 
@@ -70,8 +72,11 @@ def bag2kmlbbox(in_name,out_name, verbose=False):
 
     if v: print metadata_html
 
+    if not title:
+        title = '%s : %s'%(abstract,date)
+
     kml_data = {
-        'title':'%s : %s'%(abstract,date),
+        'title': title,
         'x': (xmin+xmax)/2.,
         'y': (ymin+ymax)/2.,
         'xmin':xmin, 
@@ -82,10 +87,12 @@ def bag2kmlbbox(in_name,out_name, verbose=False):
         }
 
     #o = file('out.kml','w')
-    o.write('''<?xml version="1.0" encoding="UTF-8"?>
+    if kml_complete:
+        o.write('''<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
-<Document>
+<Document>''')
 
+    o.write('''
 	<Placemark>
 		<name>{title}</name>
 		<description><![CDATA[
@@ -109,10 +116,13 @@ def bag2kmlbbox(in_name,out_name, verbose=False):
 			</coordinates>
 		</LineString>
 	</Placemark>
-</Document>
-</kml>
 '''.format(**kml_data)
 )
+
+    if kml_complete:
+        o.write('''</Document>
+</kml>
+''')
 
     return
 
@@ -123,8 +133,8 @@ def main():
     parser = OptionParser(usage="%prog [options]"
                           ,version="%prog "+__version__ + " ("+__date__+")")
 
-    parser.add_option('-i','--in-file',dest='infile_name',
-                      help='BAG to read')
+#    parser.add_option('-i','--in-file',dest='infile_name',
+#                      help='BAG to read')
     parser.add_option('-o','--out-file',dest='outfile_name',
                       help='KML to write')
     parser.add_option('-v','--verbose',dest='verbose',default=False,action='store_true',
@@ -132,7 +142,21 @@ def main():
     (options,args) = parser.parse_args()
     v = options.verbose 
 
-    bag2kmlbbox(options.infile_name,options.outfile_name, verbose=v)
+
+    if kml_complete:
+        o.write('''<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>''')
+
+    o = file(options.outfile_name,'w')
+    for file in args:
+        bag2kmlbbox(file, o, title=file, verbose=v)
+
+    if kml_complete:
+        o.write('''</Document>
+</kml>
+''')
+
 
 if __name__ == '__main__':
     main()
