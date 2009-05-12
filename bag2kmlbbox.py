@@ -21,13 +21,13 @@ Create a bounding box and thumb tack for a Bathymetric Attributed Grid (BAG)
 @requires: U{lxml<http://codespeak.net/lxml/>}
 @requires: U{h5py<http://code.google.com/p/h5py/>}
 '''
-
+import sys,os
 from StringIO import StringIO
 from lxml import etree 
 import h5py
 
 
-def bag2kmlbbox(in_name,out_file, title=None, kml_complete=True, verbose=False):
+def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False):
     v = verbose
     f = h5py.File(in_name) #'H11302_OLS_OSS/H11302_2m_1.bag')
     #o = file(out_name,'w')
@@ -142,18 +142,20 @@ def main():
     (options,args) = parser.parse_args()
     v = options.verbose 
 
+    o = file(options.outfile_name,'w')
 
-    if kml_complete:
-        o.write('''<?xml version="1.0" encoding="UTF-8"?>
+    o.write('''<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
 <Document>''')
 
-    o = file(options.outfile_name,'w')
-    for file in args:
-        bag2kmlbbox(file, o, title=file, verbose=v)
+    for filename in args:
+        print filename
+        try:
+            bag2kmlbbox(filename, o, title=os.path.basename(filename), verbose=v)
+        except:
+            continue
 
-    if kml_complete:
-        o.write('''</Document>
+    o.write('''</Document>
 </kml>
 ''')
 
