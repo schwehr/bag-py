@@ -37,14 +37,15 @@ print 'date:',date
 abstract = root.xpath('//*/abstract')[0].text
 print 'abstract:',abstract
 
-import subprocess
-p = subprocess.Popen(
-    ['source-highlight','-s', 'xml', '--out-format=html'],
-    stdin=subprocess.PIPE,
-    stdout=subprocess.PIPE
-    )
+#import subprocess
+#p = subprocess.Popen(
+#    ['source-highlight','-s', 'xml', '--out-format=html'],
+#    stdin=subprocess.PIPE,
+#    stdout=subprocess.PIPE
+#    )
+#metadata_html = p.communicate(input=etree.tostring(root, pretty_print=True ) ) [0]
 
-metadata_html = p.communicate(input=etree.tostring(root, pretty_print=True ) ) [0]
+metadata_html = etree.tostring(root, pretty_print=True ).replace('</',' ').replace('<',' ').replace('>',' ') #.replace('\n','<br/>\n')
 
 print metadata_html
 kml_data = {
@@ -65,9 +66,11 @@ o.write('''<?xml version="1.0" encoding="UTF-8"?>
 
 	<Placemark>
 		<name>{title}</name>
-		<description><!-- <pre> <![CDATA[ -->
+		<description><![CDATA[
+<pre>
 {metadata}
-<!-- ]]> </pre> -->
+</pre>
+]]>
 		</description>
 		<Point> <coordinates> {x},{y},0 </coordinates> </Point>
 	</Placemark>
