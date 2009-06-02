@@ -9,6 +9,10 @@ print f.listitems()
 
 bag_root = f['/BAG_root']
 metadata = ''.join(bag_root['metadata'])
+o = file('metadata.xml','w')
+o.write(metadata)
+del o
+
 
 #print metadata #[0:200]
 
