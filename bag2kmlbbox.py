@@ -135,7 +135,7 @@ def main():
 
 #    parser.add_option('-i','--in-file',dest='infile_name',
 #                      help='BAG to read')
-    parser.add_option('-o','--out-file',dest='outfile_name',
+    parser.add_option('-o','--out-file',dest='outfile_name',default='bag.kml',
                       help='KML to write')
     parser.add_option('-v','--verbose',dest='verbose',default=False,action='store_true',
                       help='Make the test output verbose')
