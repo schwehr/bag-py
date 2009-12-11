@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://earth.google.com/kml/2.1">
+<Document>
+	<name>{bag}</name>
+	<Placemark>
+		<name>{bag}</name>
+		<description>
+<![CDATA[
+<a href="{image}"><img src="{thumb}"/> <a href="{histogram}"><img src="{histogram_thumb}"/></a> <!-- link to a full image --> 
+<p><b>Summary for BAG: {bag}</b></p>
+<table border="1"><tr><td>Resolution</td><td>{dx_m} x {dy_m} (m)</td></tr>
+<tr><td>Lower left</td><td>{x0} {y0}</td></tr>
+<tr><td>Upper right</td><td>{x1} {y1}</td></tr>
+<tr><td>gdalinfo</td><td><a href="{url}{bag}.info.txt">{bag}.info.txt</a></td></tr>
+<tr><td>xml metadata</td><td><a href="{url}{metadata_xml}">{metadata_xml}</a></td></tr>
+</table>
+]]>
+</description>
+<Point>
+<coordinates>{x_center},{y_center}</coordinates>
+</Point>
+</Placemark>
+</Document>
+</kml>
+

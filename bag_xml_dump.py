@@ -26,6 +26,9 @@ import h5py
 
 # FIX: make this a proper script
 
+f = open(sys.argv[1])
+print sys.argv[1], 'opened'
+
 f = h5py.File(sys.argv[1])
 bag_root = f['/BAG_root']
 #print type(bag_root['metadata'])
