@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-
-#!/usr/bin/env python
 __author__ = 'Kurt Schwehr'
 __version__ = '$Revision: 2275 $'.split()[1]
 __revision__  = __version__ # For pylint
