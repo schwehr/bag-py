@@ -2,17 +2,17 @@
 <kml xmlns="http://earth.google.com/kml/2.1">
 <Document>
 	<name>{bag}</name>
-
-<Style id="bag_style">
-    <BalloonStyle>
-      <text>$[description]</text>
-    </BalloonStyle>
-    <IconStyle>
-      <Icon><href>http://nrwais1.schwehr.org/~schwehr/bags/bag-icon-66x66.png</href></Icon>
-      <hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
-    </IconStyle>
-</Style> 
-
+        <!-- BAG visualization by Kurt Schwehr -->
+        <Style id="bag_style">
+          <BalloonStyle>
+            <color>ff669999</color>
+            <text>$[description]</text>
+          </BalloonStyle>
+          <IconStyle>
+            <Icon><href>http://nrwais1.schwehr.org/~schwehr/bags/bag-icon-66x66.png</href></Icon>
+            <hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
+          </IconStyle>
+        </Style> 
 
 	<Placemark>
 		<name>{basename}</name>
@@ -24,15 +24,26 @@
     <td><a href="{histogram}"><img src="{histogram_thumb}"/></a></td>
 </tr></table>
 <p><b>Summary for BAG: {bag}</b></p>
-<table border="1"><tr><td>Resolution</td><td>{dx_m} x {dy_m} (m)</td></tr>
-<tr><td>Lower left</td><td>{x0} {y0}</td></tr>
-<tr><td>Upper right</td><td>{x1} {y1}</td></tr>
-<tr><td>gdalinfo</td><td><a href="{url}{bag}.info.txt">{bag}.info.txt</a></td></tr>
-<tr><td>xml metadata</td><td><a href="{url}{metadata_xml}">{metadata_xml}</a></td></tr>
-<tr><td>Download bag</td><td><a href="{bag_url}">{survey}.bag.gz</a> [NGDC]</td></tr>
-<tr><td>Descriptive report</td><td><a href="{dr_url}">{survey}.pdf</a> [NGDC]</td></tr>
+<table border="1"><!-- <tr><td>Resolution</td><td>{dx_m} x {dy_m} (m)</td></tr> -->
+  <!-- <tr><td>Cell </td><td>x x y (m)</td></tr> -->
+  <tr><td>Lower left</td><td>{x0} {y0}</td></tr>
+  <tr><td>Upper right</td><td>{x1} {y1}</td></tr>
+  <tr><td>gdalinfo</td><td><a href="{url}{bag}.info.txt">{bag}.info.txt</a></td></tr>
+  <tr><td>xml metadata</td><td><a href="{url}{metadata_xml}">{metadata_xml}</a></td></tr>
+  <tr><td>Download bag</td><td><a href="{bag_url}">{survey}.bag.gz</a> [NGDC]</td></tr>
+  <tr><td>Descriptive report</td><td><a href="{dr_url}">{survey}.pdf</a> [NGDC]</td></tr>
 </table>
 ]]>
+<hr/>
+<center>
+<table>
+  <tr>
+    <td><a href="http://ccom.unh.edu/"><img src="http://nrwais1.schwehr.org/~schwehr/bags/ccom-logo-border.png"/></a></td>
+    <td><a href="http://noaa.gov/"><img src="http://nrwais1.schwehr.org/~schwehr/bags/noaa-logo-border.png"/></a></td>
+  </tr>
+</table>
+Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
+</center>
 </description>
 <Point>
 <coordinates>{x_center},{y_center}</coordinates>

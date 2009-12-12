@@ -13,15 +13,16 @@ set -x # Turn on Debugging
 
 #rm -rf processed
 
-#for compressed_file in `find . -name \*.bag.gz`; do 
-for compressed_file in H10001-H12000/H11334/BAG/H11334_5m.bag.gz; do
+for compressed_file in `find ./H10001-H12000/ -name \*.bag.gz`; do 
+#for compressed_file in `find . -name \*.bag.gz | head -1`; do 
+#for compressed_file in H10001-H12000/H11334/BAG/H11334_5m.bag.gz; do
 #for compressed_file in `cat bags.find`; do 
     echo "BAGcmp: $compressed_file"
     basename=`basename $compressed_file`
     echo "basename: $basename"
     src=`basename ${compressed_file%%.gz}`
     echo "BAG: $src"
-    survey=`echo $compressed_file | cut -f2 -d/ `
+    survey=`echo $compressed_file | cut -f3 -d/ `
     echo "survey: $survey"
 
     patch=${src%%.bag}
@@ -38,9 +39,12 @@ for compressed_file in H10001-H12000/H11334/BAG/H11334_5m.bag.gz; do
         
         ../../bag_xml_dump.py -b `pwd`/$patch.bag -o $patch.metadata.xml
 
+        ../../bag2kmlbbox.py -o ${patch}-bbox.kml $patch.bag
+
         ~/local/bin/gdalwarp -ot Float32 -t_srs EPSG:4326  $patch.bag ${patch}-depths-f32.tif
         echo "FIX: make the color-relief use a ramp that is specific to each patch with gmt and cpt"
-        ~/local/bin/gdaldem color-relief -co "nv=0" ${patch}-depths-f32.tif ../../color_ramp_fixed.dat  ${patch}-color-relief.tif -alpha
+        # -co "nv=0"
+        ~/local/bin/gdaldem color-relief ${patch}-depths-f32.tif ../../color_ramp_fixed.dat  ${patch}-color-relief.tif -alpha -co ALPHA=YES
         ~/local/bin/gdaldem hillshade ${patch}-depths-f32.tif $patch-hillshade.tif 
         composite -blend 50 $patch-hillshade.tif ${patch}-color-relief.tif ${patch}-blend.tif # 2&> /dev/null
 
@@ -49,37 +53,34 @@ for compressed_file in H10001-H12000/H11334/BAG/H11334_5m.bag.gz; do
         listgeo -tfw ${patch}-depths-f32.tif
         geotifcp -e ${patch}-depths-f32.tfw ${patch}-blend.tif ${patch}.tif 
      
-        #pwd
-        #ls ../..
-        cp ../../template.kml .
-        #../../bag_kml_popup.py $patch
         echo "bag_kml_popup.py: ..."
         ../../bag_kml_popup.py  -b $patch.bag -s $survey -k ../../template.kml \
             -u http://nrwais1.schwehr.org/~schwehr/bags/H10001-H12000/${survey}/ \
             -v -o $patch.kml
-        convert -resize 200x200 ${patch}-hist.png ${patch}-hist-thumb.jpg
+        convert -resize 200x200 ${patch}-hist.png ${patch}-hist-thumb-tmp.jpg
+        convert -border 2x2x2x2 -bordercolor black ${patch}-hist-thumb-tmp.jpg ${patch}-hist-thumb.jpg
         convert ${patch}-hist.png ${patch}-hist.jpg
         rm ${patch}-hist.png
-        #convert -border 2x2x2x2 -bordercolor black ${patch}-hist-tmp.jpg ${patch}-hist-thumb.jpg
-        rm -f template.kml
 
         convert ${patch}-blend.tif ${patch}.jpg
         convert -resize 200x200 ${patch}-blend.tif ${patch}-thumb-tmp.jpg 
         convert -border 2x2x2x2 -bordercolor black ${patch}-thumb-tmp.jpg ${patch}-thumb.jpg
 
-        rm -f ${patch}-*-tmp.{jpg,png}
+        rm -f ${patch}*-tmp.{jpg,png}
 
+        # --zoom=10-12 
         gdal2tiles.py26 -k -s EPSG:4326 ${patch}.tif
-        #ls -l $patch
         mv $patch/doc.kml $patch/${patch}-bathy.kml
-        #rm -f *.{tif,tfw,bag} *aux.xml
-        #(cd .. && scp -r $survey nrwais1:www/bags/H10001-H12000/)
-        echo survey: $survey
+
+        rm -f *.{tif,tfw,bag} *aux.xml
+
         # --dry-run
-        (cd .. && rsync --exclude-from=../rsync.excludes --verbose --progress --stats -r $survey  nrwais1.schwehr.org:www/bags/H10001-H12000/ )
+        #(cd .. && rsync --exclude-from=../rsync.excludes --verbose --progress --stats -r $survey  nrwais1.schwehr.org:www/bags/H10001-H12000/ )
     popd
 
     echo
     echo
+    echo sleeping
+    sleep 15
 done
 

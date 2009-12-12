@@ -39,6 +39,7 @@ def get_template_data(survey, basename, urlbase, verbose):
 
     osgeo.gdal.AllRegister()
     #print 'patch_name:',patch_name
+    print 'WARNING: this part probably will NOT work until gdal 1.7.0'
     bag = osgeo.gdal.Open(patch_name + '.bag')
     assert bag
     gt_bag =  bag.GetGeoTransform()
@@ -128,7 +129,8 @@ def histogram_gdal_info_file(basename,verbose):
             line = info.readline()
             continue
         fields = line.split()
-        minval,maxval = fields[3],fields[4]
+        minval,maxval = float(fields[3]),float(fields[5].rstrip(':'))
+        
         #print minval,maxval
         #print 'line:',line
         line = info.readline()
@@ -137,13 +139,13 @@ def histogram_gdal_info_file(basename,verbose):
 
         #print
 
-    #print hist
+    print hist
     hist_vals = hist[:-1]
     while hist_vals[-1] == 0:
         hist_vals.pop()
 
-    xticks = ['%02.1f' % depth for depth in  np.arange(hist[0],hist[1],(hist[1]-hist[0])/5)]
-    xticks.append('%.1f' % hist[1])
+    xticks = ['%02.1f' % depth for depth in  np.arange(minval,maxval,(maxval-minval)/5)]
+    xticks.append('%.1f' % maxval)
     if verbose:
         print xticks  # Why is the 0.0 tick not showing?
     plt.xticks([val * len(hist_vals)/5 for val in range(len(xticks))],xticks) # Yuck!
@@ -152,6 +154,10 @@ def histogram_gdal_info_file(basename,verbose):
     y = [0,] + hist_vals + [0,]
     plt.fill(x,y)
     plt.grid(True)
+    plt.xlabel('Depth (m)')
+    plt.ylabel('Cell counts')
+    plt.title ('Histogram of cell depths for '+basename)
+
     plt.savefig(basename+'-hist.png') #,dpi=50)
     with file(basename+'.hist','w') as o:
         o.write('\n'.join([str(v) for v in hist_vals]))

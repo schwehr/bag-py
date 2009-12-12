@@ -25,7 +25,7 @@ from lxml import etree
 import h5py
 
 
-def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False):
+def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False, placemark=False):
     v = verbose
     f = h5py.File(in_name) #'H11302_OLS_OSS/H11302_2m_1.bag')
     #o = file(out_name,'w')
@@ -90,7 +90,8 @@ def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False)
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
 <Document>''')
 
-    o.write('''
+    if placemark:
+        o.write('''
 	<Placemark>
 		<name>{title}</name>
 		<description><![CDATA[
@@ -101,7 +102,8 @@ def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False)
 		</description>
 		<Point> <coordinates> {x},{y},0 </coordinates> </Point>
 	</Placemark>
-
+''')
+    o.write('''
 	<Placemark>
 		<name>{title}</name>
 		<LineString>
@@ -135,6 +137,8 @@ def main():
 #                      help='BAG to read')
     parser.add_option('-o','--out-file',dest='outfile_name',default='bag.kml',
                       help='KML to write')
+    parser.add_option('-p','--placemark',dest='placemark',default=False,action='store_true',
+                      help='Add a placemark point that includes the metadata')
     parser.add_option('-v','--verbose',dest='verbose',default=False,action='store_true',
                       help='Make the test output verbose')
     (options,args) = parser.parse_args()
