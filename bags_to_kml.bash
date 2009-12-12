@@ -14,7 +14,7 @@ set -x # Turn on Debugging
 #rm -rf processed
 
 #for compressed_file in `find . -name \*.bag.gz`; do 
-for compressed_file in H10001-H12000/H11556/BAG/H11556_1m.bag.gz; do
+for compressed_file in H10001-H12000/H11334/BAG/H11334_5m.bag.gz; do
 #for compressed_file in `cat bags.find`; do 
     echo "BAGcmp: $compressed_file"
     basename=`basename $compressed_file`

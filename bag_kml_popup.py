@@ -21,15 +21,24 @@ def get_template_data(survey, basename, urlbase, verbose):
     td = {} # template_dict/data
     #td['urlbase'] = 'http://nrwais1.schwehr.org/~schwehr/bags/H10001-H12000/{survey}/{patch}'.format(survey=survey, patch=patch_name)
     td['survey'] = survey
+    td['basename'] = patch_name
     td['patch'] = patch_name
     td['bag'] = patch_name + '.bag'
     td['thumb'] = url + patch_name + '-thumb.jpg'
     td['image'] = url + patch_name + '.jpg'
     td['url'] = url #urlbase
+
+    # NGDC download bag link
+    td['bag_url'] = 'http://surveys.ngdc.noaa.gov/mgg/NOS/coast/H10001-H12000/{survey}/BAG/{basename}.bag.gz'.format(**td)
+    print td['bag_url']
+
+    td['dr_url'] = 'http://surveys.ngdc.noaa.gov/mgg/NOS/coast/H10001-H12000/{survey}/DR/{survey}.pdf'.format(**td)
+    print td['dr_url']
+
     #td['info'] = url +  patch_name + '.info.txt'
 
     osgeo.gdal.AllRegister()
-    print 'patch_name:',patch_name
+    #print 'patch_name:',patch_name
     bag = osgeo.gdal.Open(patch_name + '.bag')
     assert bag
     gt_bag =  bag.GetGeoTransform()
@@ -90,9 +99,9 @@ def histogram_gdal_direct(basename,verbose):
     bandmin,bandmax = band.ComputeRasterMinMax()
     hist = band.GetDefaultHistogram()
 
-    print hist
-    print '----------------------------------------------------------------------'
-    print hist[3]
+    #print hist
+    #print '----------------------------------------------------------------------'
+    #print hist[3]
     hist_vals = hist[3][:-1]
     while hist_vals[-1] == 0:
         hist_vals.pop()
@@ -120,15 +129,15 @@ def histogram_gdal_info_file(basename,verbose):
             continue
         fields = line.split()
         minval,maxval = fields[3],fields[4]
-        print minval,maxval
-        print 'line:',line
+        #print minval,maxval
+        #print 'line:',line
         line = info.readline()
-        print 'line:',line
+        #print 'line:',line
         hist = [int(val) for val in line.split()]
 
-        print
+        #print
 
-    print hist
+    #print hist
     hist_vals = hist[:-1]
     while hist_vals[-1] == 0:
         hist_vals.pop()
@@ -138,7 +147,7 @@ def histogram_gdal_info_file(basename,verbose):
     if verbose:
         print xticks  # Why is the 0.0 tick not showing?
     plt.xticks([val * len(hist_vals)/5 for val in range(len(xticks))],xticks) # Yuck!
-    print 'plotting:',range(len(hist_vals)),hist_vals
+    #print 'plotting:',range(len(hist_vals)),hist_vals
     x = [0,] + range(len(hist_vals)) + [len(hist_vals),]
     y = [0,] + hist_vals + [0,]
     plt.fill(x,y)
@@ -147,11 +156,11 @@ def histogram_gdal_info_file(basename,verbose):
     with file(basename+'.hist','w') as o:
         o.write('\n'.join([str(v) for v in hist_vals]))
 
-    with file(basename+'.hist2','w') as o:
-        x = (range(len(hist_vals)))
-        print len(x), len(hist_vals)
-        for i in range(len(hist_vals)):
-            o.write('%f %f\n' % (x[i],hist_vals[i]))
+#     with file(basename+'.hist2','w') as o:
+#         x = (range(len(hist_vals)))
+#         #print len(x), len(hist_vals)
+#         for i in range(len(hist_vals)):
+#             o.write('%f %f\n' % (x[i],hist_vals[i]))
 
 
 def get_parser():
