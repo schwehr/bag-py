@@ -26,12 +26,39 @@ import h5py
 
 # FIX: make this a proper script
 
-f = open(sys.argv[1])
-print sys.argv[1], 'opened'
+import sys
 
-f = h5py.File(sys.argv[1])
-bag_root = f['/BAG_root']
-#print type(bag_root['metadata'])
-metadata_xml = ''.join(bag_root['metadata'])
-o = file(sys.argv[1]+'.xml','w') #sys.argv[2],'w')
-o.write(metadata_xml)
+def dump_metadata(bag,out):
+    f = h5py.File(bag)
+    bag_root = f['/BAG_root']
+    metadata_xml = ''.join(bag_root['metadata'])
+    #o = file(sys.argv[1]+'.xml','w') #sys.argv[2],'w')
+    out.write(metadata_xml)
+
+def get_parser():
+    '''
+    FIX: document main
+    '''
+    from optparse import OptionParser
+    parser = OptionParser(usage="%prog [options]",
+                          version="%prog "+__version__+' ('+__date__+')')
+
+    parser.add_option('-b','--bag',
+                      help= 'Bag file to get the metadata from')
+    parser.add_option('-o','--output-xml',
+                      help= 'Where to write the xml metadata  [default: stdout]')
+    parser.add_option('-v', '--verbose', dest='verbose', default=False, action='store_true',
+                      help='run the tests run in verbose mode')
+
+    return parser
+
+if __name__ == '__main__':
+    
+    (options, args) = get_parser().parse_args()
+
+    out = sys.stderr
+    if options.output_xml is not None:
+        out = file(options.output_xml,'w')
+
+    dump_metadata(options.bag, out)
+

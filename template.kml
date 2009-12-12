@@ -2,8 +2,21 @@
 <kml xmlns="http://earth.google.com/kml/2.1">
 <Document>
 	<name>{bag}</name>
+
+<Style id="bag_style">
+    <BalloonStyle>
+      <text>$[description]</text>
+    </BalloonStyle>
+    <IconStyle>
+      <Icon><href>http://vislab-ccom.unh.edu/~schwehr/healy/healy64x64.png</href></Icon>
+      <hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
+    </IconStyle>
+</Style> 
+
+
 	<Placemark>
 		<name>{bag}</name>
+                <styleUrl>#bag_style</styleUrl> 
 		<description>
 <![CDATA[
 <a href="{image}"><img src="{thumb}"/> <a href="{histogram}"><img src="{histogram_thumb}"/></a> <!-- link to a full image --> 

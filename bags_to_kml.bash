@@ -1,5 +1,7 @@
 #!/usr/bin/env bash -e
 
+set -x # Turn on Debugging
+
 # Convert all BAGs from NGDC into KML visualizations
 
 # /Volumes/KURT2009-1/BAGs/ngdc
@@ -12,13 +14,14 @@
 #rm -rf processed
 
 #for compressed_file in `find . -name \*.bag.gz`; do 
-for compressed_file in `cat bags.find`; do 
+for compressed_file in H10001-H12000/H11556/BAG/H11556_1m.bag.gz; do
+#for compressed_file in `cat bags.find`; do 
     echo "BAGcmp: $compressed_file"
     basename=`basename $compressed_file`
     echo "basename: $basename"
     src=`basename ${compressed_file%%.gz}`
     echo "BAG: $src"
-    survey=`echo $compressed_file | cut -f3 -d/ `
+    survey=`echo $compressed_file | cut -f2 -d/ `
     echo "survey: $survey"
 
     patch=${src%%.bag}
@@ -32,11 +35,8 @@ for compressed_file in `cat bags.find`; do
 
         # Get the basic info references
         ~/local/bin/gdalinfo -hist $patch.bag > $patch.bag.info.txt
-        echo -n "metadata: ... "
-        ls -l $patch.bag 
-        ../../bag_xml_dump.py `pwd`/$patch.bag 
-        # > $patch.metadata.xml
-        mv $patch.bag $patch.metadata.xml
+        
+        ../../bag_xml_dump.py -b `pwd`/$patch.bag -o $patch.metadata.xml
 
         ~/local/bin/gdalwarp -ot Float32 -t_srs EPSG:4326  $patch.bag ${patch}-depths-f32.tif
         echo "FIX: make the color-relief use a ramp that is specific to each patch with gmt and cpt"
@@ -58,6 +58,8 @@ for compressed_file in `cat bags.find`; do
             -u http://nrwais1.schwehr.org/~schwehr/bags/H10001-H12000/${survey}/ \
             -v -o $patch.kml
         convert -resize 200x200 ${patch}-hist.png ${patch}-hist-thumb.jpg
+        convert ${patch}-hist.png ${patch}-hist.jpg
+        rm ${patch}-hist.png
         #convert -border 2x2x2x2 -bordercolor black ${patch}-hist-tmp.jpg ${patch}-hist-thumb.jpg
         rm -f template.kml
 
@@ -72,6 +74,9 @@ for compressed_file in `cat bags.find`; do
         mv $patch/doc.kml $patch/${patch}-bathy.kml
         #rm -f *.{tif,tfw,bag} *aux.xml
         #(cd .. && scp -r $survey nrwais1:www/bags/H10001-H12000/)
+        echo survey: $survey
+        # --dry-run
+        (cd .. && rsync --exclude-from=../rsync.excludes --verbose --progress --stats -r $survey  nrwais1.schwehr.org:www/bags/H10001-H12000/ )
     popd
 
     echo
