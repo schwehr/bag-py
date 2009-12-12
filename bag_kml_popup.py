@@ -74,21 +74,25 @@ def get_template_data(survey, basename, urlbase, verbose):
     td['x_center'] = (x0 + x1) / 2
     td['y_center'] = (y0 + y1) / 2
 
-    td['histogram'] = url + patch_name + '-hist.png'
+    td['histogram'] = url + patch_name + '-hist.jpg'
     td['histogram_thumb'] = url + patch_name + '-hist-thumb.jpg'
     td['cwd'] = os.getcwd()
     td['metadata_xml'] = patch_name + '.metadata.xml'
 
     return td
 
-def histogram(basename,verbose):
+def histogram_gdal_direct(basename,verbose):
+    # This is the one 
     'Plot the depth histogram.  Use the tif until gdal 1.7.0 comes out'
 
-    patch = osgeo.gdal.Open(basename + '.tif')
+    patch = osgeo.gdal.Open(basename + '.bag')
     band = patch.GetRasterBand(1)
     bandmin,bandmax = band.ComputeRasterMinMax()
     hist = band.GetDefaultHistogram()
 
+    print hist
+    print '----------------------------------------------------------------------'
+    print hist[3]
     hist_vals = hist[3][:-1]
     while hist_vals[-1] == 0:
         hist_vals.pop()
@@ -101,6 +105,53 @@ def histogram(basename,verbose):
     plt.fill(range(len(hist_vals)),hist_vals)
     plt.grid(True)
     plt.savefig(basename+'-hist.png') #,dpi=50)
+    with file(basename+'.hist','w') as o:
+        o.write('\n'.join([str(v) for v in hist_vals]))
+
+
+def histogram_gdal_info_file(basename,verbose):
+    'Plot the depth histogram.  Use the tif until gdal 1.7.0 comes out'
+    # This one to use the svn gdal with bag support.  
+
+    with file(basename+'.bag.info.txt') as info:
+        line = info.readline()
+        while 'buckets' not in line:
+            line = info.readline()
+            continue
+        fields = line.split()
+        minval,maxval = fields[3],fields[4]
+        print minval,maxval
+        print 'line:',line
+        line = info.readline()
+        print 'line:',line
+        hist = [int(val) for val in line.split()]
+
+        print
+
+    print hist
+    hist_vals = hist[:-1]
+    while hist_vals[-1] == 0:
+        hist_vals.pop()
+
+    xticks = ['%02.1f' % depth for depth in  np.arange(hist[0],hist[1],(hist[1]-hist[0])/5)]
+    xticks.append('%.1f' % hist[1])
+    if verbose:
+        print xticks  # Why is the 0.0 tick not showing?
+    plt.xticks([val * len(hist_vals)/5 for val in range(len(xticks))],xticks) # Yuck!
+    print 'plotting:',range(len(hist_vals)),hist_vals
+    x = [0,] + range(len(hist_vals)) + [len(hist_vals),]
+    y = [0,] + hist_vals + [0,]
+    plt.fill(x,y)
+    plt.grid(True)
+    plt.savefig(basename+'-hist.png') #,dpi=50)
+    with file(basename+'.hist','w') as o:
+        o.write('\n'.join([str(v) for v in hist_vals]))
+
+    with file(basename+'.hist2','w') as o:
+        x = (range(len(hist_vals)))
+        print len(x), len(hist_vals)
+        for i in range(len(hist_vals)):
+            o.write('%f %f\n' % (x[i],hist_vals[i]))
 
 
 def get_parser():
@@ -142,7 +193,7 @@ if __name__ == '__main__':
     if options.verbose:
         print 'template_data:',template_data
 
-    kml_content = file("template.kml").read().format(**template_data)
+    kml_content = file(options.kml_template).read().format(**template_data)
 
     if options.output_kml is None:
         print kml_content
@@ -150,4 +201,5 @@ if __name__ == '__main__':
         with file(options.output_kml,'w') as kml:
             kml.write( kml_content )
 
-    histogram(basename,options.verbose)
+    #histogram(basename,options.verbose)
+    histogram_gdal_info_file(basename,options.verbose)
