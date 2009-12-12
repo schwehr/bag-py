@@ -1,0 +1,8 @@
+*.tif
+*.tfw
+*.bag
+*.kml
+*.png
+*.aux.xml
+googlemaps.html
+openlayers.html
