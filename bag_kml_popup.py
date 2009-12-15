@@ -2,6 +2,7 @@
 import sys, os
 import osgeo.gdal
 import osgeo.gdalconst
+osgeo.gdal.AllRegister()
 
 import numpy as np
 import matplotlib.pyplot as plt

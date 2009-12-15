@@ -24,6 +24,9 @@ from StringIO import StringIO
 from lxml import etree 
 import h5py
 
+iso8601_timeformat = '%Y-%m-%dT%H:%M:%SZ'
+'for TimeStamp'
+
 
 def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False, placemark=False):
     v = verbose
@@ -50,8 +53,17 @@ def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False,
     ymin = float(root.xpath('//*/southBoundLatitude')[0].text)
     ymax = float(root.xpath('//*/northBoundLatitude')[0].text)
 
-    date = root.xpath('//*/CI_Date/date')[0].text
+    # WARNING: This date does not relate to the dates the survey was collected!
+    date = root.xpath('//*/CI_Date/date')[0].text 
     abstract = root.xpath('//*/abstract')[0].text
+
+    timestamp = '' # No timestamp if we can't handle it
+    try:
+        import datetime, magicdate
+        adate = magicdate.magicdate(date)
+        timestamp = '<TimeStamp>'+adate.strftime(iso8601_timeformat)+'</TimeStamp>' 
+    except:
+        print 'WARNING: Unable to handle timestamp:',date
 
     if v:
         print xmin,xmax,'->',ymin,ymax
@@ -81,7 +93,8 @@ def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False,
         'xmax':xmax,
         'ymin':ymin,
         'ymax':ymax,
-        'metadata': metadata_html
+        'metadata': metadata_html,
+        'timestamp': timestamp,
         }
 
     #o = file('out.kml','w')
@@ -94,6 +107,7 @@ def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False,
         o.write('''
 	<Placemark>
 		<name>{title}</name>
+		{timestamp}
 		<description><![CDATA[
 <pre>
 {metadata}
@@ -106,6 +120,7 @@ def bag2kmlbbox(in_name,out_file, title=None, kml_complete=False, verbose=False,
     o.write('''
 	<Placemark>
 		<name>{title}</name>
+		{timestamp}
 		<LineString>
 			<coordinates>
 {xmin},{ymin},0
