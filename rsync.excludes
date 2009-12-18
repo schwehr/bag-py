@@ -1,8 +1,13 @@
 *.tif
 *.tfw
 *.bag
-*.kml
-*.png
+*.jpg
 *.aux.xml
 googlemaps.html
 openlayers.html
+*.hist
+tile*
+[0-9]
+[0-9][0-9]
+[0-9][0-9][0-9]
+*.html

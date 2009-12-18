@@ -16,7 +16,10 @@ set -x # Turn on Debugging
 
 PATH=`pwd`:$PATH
 
-for compressed_file in `find ./H10001-H12000/ -name \*.bag.gz`; do 
+for compressed_file in `cat find.bag`; do 
+
+#for compressed_file in `find ./H10001-H12000/ -name \*.bag.gz`; do 
+
 #for compressed_file in `find . -name \*.bag.gz | head -1`; do 
 #for compressed_file in H10001-H12000/H11334/BAG/H11334_5m.bag.gz; do
 #for compressed_file in `cat bags.find`; do 
@@ -85,8 +88,8 @@ for compressed_file in `find ./H10001-H12000/ -name \*.bag.gz`; do
         # Cleanup
         #rm -f ${patch}-hist.png
         rm -f ${patch}*-tmp.{jpg,png}
-        #rm -f *.{tif,tfw} *aux.xml
-        #rm -f *.bag
+        rm -f *.{tif,tfw} *aux.xml
+        rm -f *.bag
 
         # --dry-run
         #(cd .. && rsync --exclude-from=../rsync.excludes --verbose --progress --stats -r $survey  nrwais1.schwehr.org:www/bags/H10001-H12000/ )
@@ -95,6 +98,6 @@ for compressed_file in `find ./H10001-H12000/ -name \*.bag.gz`; do
     echo
     echo
     echo sleeping to keep the laptop from overheating too badly
-    sleep 1
+    sleep 10
 done
 
