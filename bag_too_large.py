@@ -9,7 +9,7 @@ max_dim = int (sys.argv[2])
 class gdalinfo:
     def __init__(self, filename):
         # FIX: replace all this with the gdal python interface with gdal 1.7.0
-        proc = subprocess.Popen('~/local/bin/gdalinfo %s' % filename, shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen('gdalinfo %s' % filename, shell=True, stdout=subprocess.PIPE)
         stdout = proc.communicate()[0].split('\n')
         #print stdout
 

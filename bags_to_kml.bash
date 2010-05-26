@@ -16,13 +16,13 @@ set -x # Turn on Debugging
 
 PATH=`pwd`:$PATH
 
-for compressed_file in `cat find.bag`; do 
 
 #for compressed_file in `find ./H10001-H12000/ -name \*.bag.gz`; do 
 
 #for compressed_file in `find . -name \*.bag.gz | head -1`; do 
 #for compressed_file in H10001-H12000/H11334/BAG/H11334_5m.bag.gz; do
 #for compressed_file in `cat bags.find`; do 
+for compressed_file in `cat find.bag`; do 
     echo "BAGcmp: $compressed_file"
     basename=`basename $compressed_file`
     echo "basename: $basename"
@@ -41,23 +41,23 @@ for compressed_file in `cat find.bag`; do
         echo Processing patch: $patch
 
         # Get the basic info references
-        ~/local/bin/gdalinfo -hist $patch.bag > $patch.bag.info.txt
+        gdalinfo -hist $patch.bag > $patch.bag.info.txt
         
         ../../bag_xml_dump.py -b `pwd`/$patch.bag -o $patch.metadata.xml
 
         ../../bag2kmlbbox.py -o ${patch}-bbox.kml $patch.bag
 
         echo "FIX: remove silly small bag size threshold"
-        bag_too_large.py $patch.bag 5000
+        bag_too_large.py $patch.bag 10000
         if [ 1 == $? ]; then
            echo "WARNING: Skipping $patch.bag slow command because file too large"
            echo "The thumbs will be broken and the web page will not have the required images"
         else
             # Okay to generate a tif and do other stuff
-            ~/local/bin/gdalwarp -ot Float32 -t_srs EPSG:4326  $patch.bag ${patch}-depths-f32.tif
+            gdalwarp -ot Float32 -t_srs EPSG:4326  $patch.bag ${patch}-depths-f32.tif
             echo "FIX: make the color-relief use a ramp that is specific to each patch with gmt and cpt"
-            ~/local/bin/gdaldem color-relief ${patch}-depths-f32.tif ../../color_ramp_fixed.dat  ${patch}-color-relief.tif -alpha -co ALPHA=YES
-            ~/local/bin/gdaldem hillshade ${patch}-depths-f32.tif $patch-hillshade.tif 
+            gdaldem color-relief ${patch}-depths-f32.tif ../../color_ramp_fixed.dat  ${patch}-color-relief.tif -alpha -co ALPHA=YES
+            gdaldem hillshade ${patch}-depths-f32.tif $patch-hillshade.tif 
             composite -blend 50 $patch-hillshade.tif ${patch}-color-relief.tif ${patch}-blend.tif # 2&> /dev/null
 
             echo
