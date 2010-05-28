@@ -15,7 +15,7 @@ Create a bounding box and thumb tack for a Bathymetric Attributed Grid (BAG)
 @var __date__: Date of last svn commit
 @undocumented: __doc__ myparser
 @status: under development
-@since: 12-May-2009
+@since: 26-May-2010
 
 @requires: U{Python<http://python.org/>} >= 2.6
 @requires: U{lxml<http://codespeak.net/lxml/>}
@@ -34,9 +34,13 @@ iso8601_timeformat = '%Y-%m-%dT%H:%M:%SZ'
 'for TimeStamp'
 
 
-def add_bag_to_db(cx, infile_name, survey, filename_base, verbose):
+def add_bag_to_db(cx, infile_name, survey, filename_base, verbose=False, write_xml=False):
     # filename_base - without .bag or path
+    print ('file:',infile_name, file=sys.stderr)
+
     v = verbose
+    if v:
+        print ('opening:',infile_name,os.path.getsize(infile_name))
     f = h5py.File(infile_name) #'H11302_OLS_OSS/H11302_2m_1.bag')
     #o = file('foo.out','w')
 
@@ -48,7 +52,12 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose):
 
     #root = etree.parse(StringIO(metadata_xml)).getroot()
     #root = etree.parse(StringIO(metadata_xml.replace('smXML:',''))).getroot()
-    root = etree.XML(metadata_xml.replace('smXML:',''))
+    try:
+        root = etree.XML(metadata_xml.replace('smXML:',''))
+    except:
+        print ('bad_metadata:',infile_name) # What can we do?
+        return # ouch... better if we could try to fix it somehow
+        
 
     x_min = float(root.xpath('//*/westBoundLongitude')[0].text)
     x_max = float(root.xpath('//*/eastBoundLongitude')[0].text)
@@ -58,11 +67,18 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose):
 
     utm_zone = int(root.xpath('//*/zone')[0].text)
     vdatum = None
-    for entry in root.xpath('//*/datum/RS_Identifier/code'):
+    if False:
+      for entry in root.xpath('//*/datum/RS_Identifier/code'):
         print (entry.text)
-        if entry.text != 'NAD83': # NAD83 is not a vertical reference datum folks
+        if entry.text.strip() not in ('NAD83','WGS84') : # NAD83 is not a vertical reference datum folks
             vdatum = entry.text
             break
+    datums = [entry.text.strip() for entry in root.xpath('//*/datum/RS_Identifier/code')]
+    if len(datums)==0:
+        pass
+    elif 'MLLW' in datums: vdatum = 'MLLW'
+    else: vdatum = datums[-1] # just guess that it is the last one
+    print('datums:',datums,'->',vdatum)
         
     axes = (root.xpath('//*/axisDimensionProperties'))
     dx = dy = None
@@ -72,7 +88,7 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose):
         dim_name = axis.xpath('*/dimensionName')[0].text
         dim_size = int(axis.xpath('*/dimensionSize')[0].text)
         delta = float(axis.xpath('*/*/*/value')[0].text)
-        print ('dim_name: "%s"' % (dim_name,))
+        #print ('dim_name: "%s"' % (dim_name,))
         if 'row' == dim_name:
             dy = delta
             height = dim_size
@@ -80,6 +96,7 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose):
             dx = delta
             width = dim_size
         else:
+            print ('ERROR: unable to handle dim',dim_name)
             assert False
 
     # WARNING: This date does not relate to the dates the survey was collected!
@@ -90,39 +107,37 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose):
     timestamp = '' # No timestamp if we can't handle it
     try:
         import datetime, magicdate
-        timestamp = magicdate.magicdate(date)
+        #timestamp = magicdate.magicdate(date)
+        creation = magicdate.magicdate(date)
         #timestamp = adate.strftime(iso8601_timeformat) 
     except:
         print ('WARNING: Unable to handle timestamp:',date)
-        timestamp = None
+        creation = None
 
     if v:
         print (x_min,x_max,'->',y_min,y_max)
         print ('date:',date)
         print ('abstract:',abstract)
 
-    #metadata_html = etree.tostring(root, pretty_print=True ).replace('</',' ').replace('<',' ').replace('>',' ') #.replace('\n','<br/>\n')
-
+    metadata_txt = etree.tostring(root, pretty_print=True ).replace('</',' ').replace('<',' ').replace('>',' ') #.replace('\n','<br/>\n')
 
     # FIX: base url must change based on the number of the survey
     base_url = 'http://surveys.ngdc.noaa.gov/mgg/NOS/coast/H10001-H12000/'
     dr_url = base_url + survey + '/DR/' + survey + '.pdf'
     bag_url = base_url + survey + '/BAG/' + filename_base + '.bag.gz'
 
-    sql_field_names = ('file', 'survey', 'title','abstract', 'survey', 'creation', 'x_min', 'y_min', 'x_max', 'y_max', 'width', 'height', 'dx', 'dy', 'vdatum', 'utm_zone', 'dr_url', 'bag_url')
+    sql_field_names = ('file', 'survey', 'title','abstract', 'survey', 'creation', 'x_min', 'y_min', 'x_max', 'y_max', 'width', 'height', 'dx', 'dy', 'vdatum', 'utm_zone', 'dr_url', 'bag_url', 'metadata_txt','metadata_xml')
 
     file = filename_base
-    print ('file:',file)
-    creation = timestamp
 
     # check for errors
-    for field in sql_field_names:
-        print('%s:' % (field,) ,locals()[field])
+    #for field in sql_field_names:
+    #    print('%s:' % (field,) ,locals()[field])
 
     sql_insert = 'INSERT INTO bag (' + ','.join(sql_field_names) + ') VALUES (' + ', '.join([':%s' %(field,) for field in sql_field_names ]) + ');'
 
     #print (bag_data)
-    print (sql_insert)
+    #print (sql_insert)
     cx.execute(sql_insert,locals()) # Passing locals sees crazy
     cx.commit()
 
@@ -156,8 +171,12 @@ CREATE TABLE IF NOT EXISTS bag (
        dy FLOAT, -- NOT NULL,
        utm_zone INTEGER, -- NOT NULL,
        vdatum VARCHAR, -- NOT NULL
-       dr_url, -- NOT NULL -- Descriptive report at NGDC
-       bag_url -- NOT NULL -- The original BAG file at NGDC
+       dr_url TEXT, -- NOT NULL -- Descriptive report at NGDC
+       bag_url TEXT, -- NOT NULL -- The original BAG file at NGDC
+       metadata_txt TEXT,
+       metadata_xml TEXT
+       -- metadata_html TEXT,
+       -- gdal_info TEXT,
 );
 '''
     cx.execute(create_sql)
@@ -186,7 +205,7 @@ def main():
     for filename_full in args:
         survey,filename = parse_filename(filename_full)
         #print (filename)
-        if v: print ('processing_bag:',survey,filename,filename_full)
+        if v: print ('processing_bag:',survey,filename,filename_full, file=sys.stderr)
         add_bag_to_db(cx, filename_full, survey, filename, v)
 
 if __name__ == '__main__':
