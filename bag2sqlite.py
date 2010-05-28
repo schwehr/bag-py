@@ -29,26 +29,22 @@ from lxml import etree
 import h5py
 
 import sqlite3
-cx = sqlite3.connect('bags.sqlite')
-#cx.row_factory = sqlite3.Row
 
 iso8601_timeformat = '%Y-%m-%dT%H:%M:%SZ'
 'for TimeStamp'
 
-infile_name = 'H11401_2m_1.bag'
-survey='H11401'
-verbose = True
 
-if True:
+def add_bag_to_db(cx, infile_name, survey, filename_base, verbose):
+    # filename_base - without .bag or path
     v = verbose
     f = h5py.File(infile_name) #'H11302_OLS_OSS/H11302_2m_1.bag')
-    o = file('foo.out','w')
+    #o = file('foo.out','w')
 
     bag_root = f['/BAG_root']
     metadata_xml = ''.join(bag_root['metadata'])
-    o = file('metadata.xml','w')
-    o.write(metadata_xml)
-    del o
+    #o = file('metadata.xml','w')
+    #o.write(metadata_xml)
+    #del o
 
     #root = etree.parse(StringIO(metadata_xml)).getroot()
     #root = etree.parse(StringIO(metadata_xml.replace('smXML:',''))).getroot()
@@ -89,6 +85,7 @@ if True:
     # WARNING: This date does not relate to the dates the survey was collected!
     date = root.xpath('//*/CI_Date/date')[0].text 
     abstract = root.xpath('//*/abstract')[0].text
+    title = root.xpath('//*/title')[0].text
 
     timestamp = '' # No timestamp if we can't handle it
     try:
@@ -104,17 +101,17 @@ if True:
         print ('date:',date)
         print ('abstract:',abstract)
 
-    metadata_html = etree.tostring(root, pretty_print=True ).replace('</',' ').replace('<',' ').replace('>',' ') #.replace('\n','<br/>\n')
-    title = 'too long...'
+    #metadata_html = etree.tostring(root, pretty_print=True ).replace('</',' ').replace('<',' ').replace('>',' ') #.replace('\n','<br/>\n')
+
 
     # FIX: base url must change based on the number of the survey
     base_url = 'http://surveys.ngdc.noaa.gov/mgg/NOS/coast/H10001-H12000/'
     dr_url = base_url + survey + '/DR/' + survey + '.pdf'
-    bag_url = base_url + survey + '/BAG/' + infile_name + '.gz'
+    bag_url = base_url + survey + '/BAG/' + filename_base + '.bag.gz'
 
     sql_field_names = ('file', 'survey', 'title','abstract', 'survey', 'creation', 'x_min', 'y_min', 'x_max', 'y_max', 'width', 'height', 'dx', 'dy', 'vdatum', 'utm_zone', 'dr_url', 'bag_url')
 
-    file = infile_name
+    file = filename_base
     print ('file:',file)
     creation = timestamp
 
@@ -128,3 +125,69 @@ if True:
     print (sql_insert)
     cx.execute(sql_insert,locals()) # Passing locals sees crazy
     cx.commit()
+
+def parse_filename(filename_full):
+    # e.g. /Users/schwehr/Desktop/bags/H10001-H12000/H11411/BAG/H11411_2m_12.bag
+    # Take survey from the directory, not the filename
+    filename_full = os.path.abspath(filename_full) # Make sure we can get the survey
+    base, filename = os.path.split(filename_full)
+    filename, ext = os.path.splitext(filename)
+
+    survey = base.split(os.path.sep)[-2]
+    return survey, filename
+
+def create_table(cx):
+
+    create_sql = '''
+CREATE TABLE IF NOT EXISTS bag (
+       id INTEGER PRIMARY KEY, -- AUTOINCREMENT NOT NULL UNIQUE,
+       file VARCHAR, -- NOT NULL UNIQUE,
+       survey VARCHAR, -- NOT NULL,
+       title TEXT,
+       abstract TEXT,
+       creation DATETIME, -- Unfortunetly nothing to do with the survey
+       x_min FLOAT, -- NOT NULL,
+       y_min FLOAT, -- NOT NULL,
+       x_max FLOAT, -- NOT NULL,
+       y_max FLOAT, -- NOT NULL,
+       width INTEGER, -- NOT NULL,
+       height INTEGER, -- NOT NULL,
+       dx FLOAT, -- NOT NULL,
+       dy FLOAT, -- NOT NULL,
+       utm_zone INTEGER, -- NOT NULL,
+       vdatum VARCHAR, -- NOT NULL
+       dr_url, -- NOT NULL -- Descriptive report at NGDC
+       bag_url -- NOT NULL -- The original BAG file at NGDC
+);
+'''
+    cx.execute(create_sql)
+    cx.commit()
+    
+def main():
+    from optparse import OptionParser
+    parser = OptionParser(usage="%prog [options] file1.bag [file2.bag] ...",
+                          version="%prog "+__version__+' ('+__date__+')')
+    
+    #parser.add_option('--create', default=False, action='store_true', help='Create the db table')
+    parser.add_option('-d', '--database', default='bags.sqlite', help='Sqlite3 database to use')
+    parser.add_option('-v', '--verbose', default=False, action='store_true', help='run the tests run in verbose mode')
+
+    (options, args) = parser.parse_args()
+    v = options.verbose
+    
+    cx = sqlite3.connect('bags.sqlite')
+    #cx.row_factory = sqlite3.Row
+
+    create_table(cx)
+
+    #infile_name = 'H11401_2m_1.bag'
+    #survey='H11401'
+    #verbose = True
+    for filename_full in args:
+        survey,filename = parse_filename(filename_full)
+        #print (filename)
+        if v: print ('processing_bag:',survey,filename,filename_full)
+        add_bag_to_db(cx, filename_full, survey, filename, v)
+
+if __name__ == '__main__':
+    main()
