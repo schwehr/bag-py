@@ -69,6 +69,9 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose=False, write_x
     y_min_metadata = float(root.xpath('//*/southBoundLatitude')[0].text)
     y_max_metadata = float(root.xpath('//*/northBoundLatitude')[0].text)
 
+    software = root.xpath('//*/BAG_ProcessStep/description')[0].text
+    #print ('software:',software)
+
     utm_zone = int(root.xpath('//*/zone')[0].text)
     # The WGS84 geographic is often foulded up.
 
@@ -152,7 +155,7 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose=False, write_x
     dr_url = base_url + survey + '/DR/' + survey + '.pdf'
     bag_url = base_url + survey + '/BAG/' + filename_base + '.bag.gz'
 
-    sql_field_names = ('file', 'survey', 'title','abstract', 'survey', 'creation', 'x_min', 'y_min', 'x_max', 'y_max', 'width', 'height', 'dx', 'dy', 'vdatum', 'utm_zone', 'dr_url', 'bag_url', 'metadata_txt','metadata_xml', 'utm_x_min','utm_y_min' ,  'utm_x_max' ,'utm_y_max')
+    sql_field_names = ('file', 'survey', 'title','abstract', 'survey', 'creation', 'x_min', 'y_min', 'x_max', 'y_max', 'width', 'height', 'dx', 'dy', 'vdatum', 'utm_zone', 'dr_url', 'bag_url', 'metadata_txt','metadata_xml', 'utm_x_min','utm_y_min' ,  'utm_x_max' ,'utm_y_max', 'software')
 
     file = filename_base
 
@@ -203,6 +206,7 @@ CREATE TABLE IF NOT EXISTS bag (
        vdatum VARCHAR, -- NOT NULL
        dr_url TEXT, -- NOT NULL -- Descriptive report at NGDC
        bag_url TEXT, -- NOT NULL -- The original BAG file at NGDC
+       software TEXT, -- Software used to create the bag so we can track troubles
        metadata_txt TEXT,
        metadata_xml TEXT
        -- metadata_html TEXT,
