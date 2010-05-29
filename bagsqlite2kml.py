@@ -15,7 +15,7 @@ def sqlite2kml(cx,outfile):
     o.write('''<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://earth.google.com/kml/2.1">
 <Document>
-	<name>{bag}</name>
+	<name>NOAA BAGs</name>
         <!-- BAG visualization by Kurt Schwehr -->
         <Style id="bag_style">
           <BalloonStyle>
@@ -43,8 +43,8 @@ def sqlite2kml(cx,outfile):
 ''')
 
     surveys = [row['survey'] for row in cx.execute('SELECT DISTINCT(survey) FROM bag;')]
-    print (surveys[:10])
-    for survey in surveys[:2]: 
+    #print (surveys[:10])
+    for survey in surveys: #[:2]: 
         print ('Processing:',survey)
         ll = [row for row in cx.execute('SELECT MIN(x_min) as x, MIN(y_min) as y FROM bag WHERE survey=:survey;',{'survey':survey})][0]
         ur = [row for row in cx.execute('SELECT MAX(x_max) as x, MAX(y_max) as y FROM bag WHERE survey=:survey;',{'survey':survey})][0]
@@ -57,6 +57,22 @@ def sqlite2kml(cx,outfile):
         y_center = (ll[1] + ur[1]) / 2.
         o.write('''
         <Folder>
+	<Region>
+		<LatLonAltBox>
+			<north>{y_max}</north>
+			<south>{y_min}</south>
+			<east>{x_max}</east>
+			<west>{x_min}</west>
+			<minAltitude>0</minAltitude>
+			<maxAltitude>0</maxAltitude>
+		</LatLonAltBox>
+		<Lod>
+			<minLodPixels>-1</minLodPixels>
+			<maxLodPixels>200</maxLodPixels>
+			<minFadeExtent>0</minFadeExtent>
+			<maxFadeExtent>0</maxFadeExtent>
+		</Lod>
+	</Region>
 	<Placemark>
 		<name>{survey}</name>
                 <styleUrl>#survey_style</styleUrl> 
@@ -83,10 +99,7 @@ Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
 <Point>
 <coordinates>{x_center},{y_center}</coordinates>
 </Point>
-</Placemark>
-'''.format(**locals()) ) # survey=survey, ll=ll, ur=ur, dr_url=dr_url))
-
-        o.write('''
+        </Placemark>
 	<Placemark>
 		<name>{survey}</name>
 		
@@ -100,22 +113,43 @@ Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
 			</coordinates>
 		</LineString>
 	</Placemark>
-'''.format(**locals())
-)
 
-        o.write('</Folder>\n\n\t<Folder> <name>{survey} bags</name>\n'.format(survey=survey))
+        </Folder>
 
+        <Folder> <name>{survey} bags</name>
+	<Region>
+		<LatLonAltBox>
+			<north>{y_max}</north>
+			<south>{y_min}</south>
+			<east>{x_max}</east>
+			<west>{x_min}</west>
+			<minAltitude>0</minAltitude>
+			<maxAltitude>0</maxAltitude>
+		</LatLonAltBox>
+		<Lod>
+			<minLodPixels>200</minLodPixels>
+			<maxLodPixels>-1</maxLodPixels>
+			<minFadeExtent>0</minFadeExtent>
+			<maxFadeExtent>0</maxFadeExtent>
+		</Lod>
+	</Region>
+'''.format(**locals()))
+        
         ######################################################################
         # Individual BAGs
         for bag in cx.execute('SELECT * FROM bag WHERE survey=:survey;',{'survey':survey}):
-            print ('\t',bag['x_min'],bag['y_min'],bag['x_max'],bag['y_max'],bag['file'])
-            if False: o.write('''
+            #print ('\t',bag['x_min'],bag['y_min'],bag['x_max'],bag['y_max'],bag['file'])
+            x_min = bag['x_min']; x_max = bag['x_max']; x_center = (x_min + x_max) / 2
+            y_min = bag['y_min']; y_max = bag['y_max']; y_center = (y_min + y_max) / 2
+            file = bag['file']
+            print ('\t',x_min,y_min,x_max,y_max,'->',x_center,y_center,'\t',file)
+            o.write('''
 	<Placemark>
-		<name>{survey}</name>
-                <styleUrl>#survey_style</styleUrl> 
+        <name>{file}</name>
+                <styleUrl>#bag_style</styleUrl> 
 		<description>
 <![CDATA[
-<p><b>Summary for Survey: {survey}</b></p>
+<p><b>Summary for BAG: {file}</b></p>
 <table border="1">
   <tr><td>Lower left</td><td>{ll[0]} {ll[1]}</td></tr>
   <tr><td>Upper right</td><td>{ur[0]} {ur[1]}</td></tr>
@@ -137,6 +171,21 @@ Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
 <coordinates>{x_center},{y_center}</coordinates>
 </Point>
 </Placemark>
+
+	<Placemark>
+		<name>{survey}</name>
+		
+		<LineString>
+			<coordinates>
+{x_min},{y_min},0
+{x_max},{y_min},0
+{x_max},{y_max},0
+{x_min},{y_max},0
+{x_min},{y_min},0
+			</coordinates>
+		</LineString>
+	</Placemark>
+
 '''.format(**locals()) ) # survey=survey, ll=ll, ur=ur, dr_url=dr_url))
 
         o.write('\t</Folder>\n')

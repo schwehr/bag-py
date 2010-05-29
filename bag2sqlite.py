@@ -29,6 +29,10 @@ from lxml import etree
 import h5py
 
 import sqlite3
+from pyproj import Proj
+
+def lon_to_utm_zone(lon):
+    return int(( lon + 180 ) / 6) + 1
 
 iso8601_timeformat = '%Y-%m-%dT%H:%M:%SZ'
 'for TimeStamp'
@@ -59,13 +63,35 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose=False, write_x
         return # ouch... better if we could try to fix it somehow
         
 
-    x_min = float(root.xpath('//*/westBoundLongitude')[0].text)
-    x_max = float(root.xpath('//*/eastBoundLongitude')[0].text)
+    x_min_metadata = float(root.xpath('//*/westBoundLongitude')[0].text)
+    x_max_metadata = float(root.xpath('//*/eastBoundLongitude')[0].text)
 
-    y_min = float(root.xpath('//*/southBoundLatitude')[0].text)
-    y_max = float(root.xpath('//*/northBoundLatitude')[0].text)
+    y_min_metadata = float(root.xpath('//*/southBoundLatitude')[0].text)
+    y_max_metadata = float(root.xpath('//*/northBoundLatitude')[0].text)
 
     utm_zone = int(root.xpath('//*/zone')[0].text)
+    # The WGS84 geographic is often foulded up.
+
+    utm_coords = root.xpath('//*/gml:coordinates', namespaces={'gml':"http://www.opengis.net/gml"})[0].text
+    #print ('\t',utm_coords)
+    utm_coords = utm_coords.split()
+    utm_x_min,utm_y_min = [float(coord) for coord in utm_coords[0].split(',')]
+    utm_x_max,utm_y_max = [float(coord) for coord in utm_coords[1].split(',')]
+
+    params = {'proj':'utm', 'zone':utm_zone}
+    proj = Proj(params)
+
+    x_min,y_min = proj(utm_x_min,utm_y_min, inverse=True)
+    x_max,y_max = proj(utm_x_max,utm_y_max, inverse=True)
+    #print ('\t',utm_x_min,utm_y_min, utm_x_max,utm_y_max)
+    #print ('\t\t',x_min,y_min,x_max,y_max)
+    #print ('\t\t',x_min_metadata,y_min_metadata,x_max_metadata,y_max_metadata)
+    print ('\t %.4f %.4f %.4f %.4f' % (
+           x_min - x_min_metadata,y_min - y_min_metadata,
+           x_max - x_max_metadata,y_max - y_max_metadata)
+           )
+
+    
     vdatum = None
     if False:
       for entry in root.xpath('//*/datum/RS_Identifier/code'):
@@ -126,7 +152,7 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose=False, write_x
     dr_url = base_url + survey + '/DR/' + survey + '.pdf'
     bag_url = base_url + survey + '/BAG/' + filename_base + '.bag.gz'
 
-    sql_field_names = ('file', 'survey', 'title','abstract', 'survey', 'creation', 'x_min', 'y_min', 'x_max', 'y_max', 'width', 'height', 'dx', 'dy', 'vdatum', 'utm_zone', 'dr_url', 'bag_url', 'metadata_txt','metadata_xml')
+    sql_field_names = ('file', 'survey', 'title','abstract', 'survey', 'creation', 'x_min', 'y_min', 'x_max', 'y_max', 'width', 'height', 'dx', 'dy', 'vdatum', 'utm_zone', 'dr_url', 'bag_url', 'metadata_txt','metadata_xml', 'utm_x_min','utm_y_min' ,  'utm_x_max' ,'utm_y_max')
 
     file = filename_base
 
@@ -167,9 +193,13 @@ CREATE TABLE IF NOT EXISTS bag (
        y_max FLOAT, -- NOT NULL,
        width INTEGER, -- NOT NULL,
        height INTEGER, -- NOT NULL,
-       dx FLOAT, -- NOT NULL,
-       dy FLOAT, -- NOT NULL,
+       dx FLOAT, -- NOT NULL, -- m
+       dy FLOAT, -- NOT NULL, -- m
        utm_zone INTEGER, -- NOT NULL,
+       utm_x_min FLOAT, -- NOT NULL,
+       utm_y_min FLOAT, -- NOT NULL,
+       utm_x_max FLOAT, -- NOT NULL,
+       utm_y_max FLOAT, -- NOT NULL,
        vdatum VARCHAR, -- NOT NULL
        dr_url TEXT, -- NOT NULL -- Descriptive report at NGDC
        bag_url TEXT, -- NOT NULL -- The original BAG file at NGDC
