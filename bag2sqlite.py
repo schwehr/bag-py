@@ -40,11 +40,11 @@ iso8601_timeformat = '%Y-%m-%dT%H:%M:%SZ'
 
 def add_bag_to_db(cx, infile_name, survey, filename_base, verbose=False, write_xml=False):
     # filename_base - without .bag or path
-    print ('file:',infile_name, file=sys.stderr)
+    #print ('file:',infile_name, file=sys.stderr)
 
     v = verbose
-    if v:
-        print ('opening:',infile_name,os.path.getsize(infile_name))
+    #if v:
+    #    print ('opening:',infile_name,os.path.getsize(infile_name))
     f = h5py.File(infile_name) #'H11302_OLS_OSS/H11302_2m_1.bag')
     #o = file('foo.out','w')
 
@@ -89,25 +89,20 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose=False, write_x
     #print ('\t',utm_x_min,utm_y_min, utm_x_max,utm_y_max)
     #print ('\t\t',x_min,y_min,x_max,y_max)
     #print ('\t\t',x_min_metadata,y_min_metadata,x_max_metadata,y_max_metadata)
-    print ('\t %.4f %.4f %.4f %.4f' % (
-           x_min - x_min_metadata,y_min - y_min_metadata,
-           x_max - x_max_metadata,y_max - y_max_metadata)
-           )
+    if abs(x_max - x_max_metadata) > 0.05 or abs(y_max - y_max_metadata) > 0.05:
+        print ('%s: %.4f %.4f %.4f %.4f' % (filename_base,
+            x_min - x_min_metadata,y_min - y_min_metadata,
+            x_max - x_max_metadata,y_max - y_max_metadata)
+               )
 
-    
     vdatum = None
-    if False:
-      for entry in root.xpath('//*/datum/RS_Identifier/code'):
-        print (entry.text)
-        if entry.text.strip() not in ('NAD83','WGS84') : # NAD83 is not a vertical reference datum folks
-            vdatum = entry.text
-            break
     datums = [entry.text.strip() for entry in root.xpath('//*/datum/RS_Identifier/code')]
     if len(datums)==0:
         pass
     elif 'MLLW' in datums: vdatum = 'MLLW'
-    else: vdatum = datums[-1] # just guess that it is the last one
-    print('datums:',datums,'->',vdatum)
+    else:
+        vdatum = datums[-1] # just guess that it is the last one
+        print('datums:',datums,'->',vdatum,filename_base)
         
     axes = (root.xpath('//*/axisDimensionProperties'))
     dx = dy = None
@@ -143,10 +138,10 @@ def add_bag_to_db(cx, infile_name, survey, filename_base, verbose=False, write_x
         print ('WARNING: Unable to handle timestamp:',date)
         creation = None
 
-    if v:
-        print (x_min,x_max,'->',y_min,y_max)
-        print ('date:',date)
-        print ('abstract:',abstract)
+#    if v:
+#        print (x_min,x_max,'->',y_min,y_max)
+#        print ('date:',date)
+#        print ('abstract:',abstract)
 
     metadata_txt = etree.tostring(root, pretty_print=True ).replace('</',' ').replace('<',' ').replace('>',' ') #.replace('\n','<br/>\n')
 
@@ -236,10 +231,12 @@ def main():
     #infile_name = 'H11401_2m_1.bag'
     #survey='H11401'
     #verbose = True
-    for filename_full in args:
+    for cnt, filename_full in enumerate(args):
         survey,filename = parse_filename(filename_full)
-        #print (filename)
-        if v: print ('processing_bag:',survey,filename,filename_full, file=sys.stderr)
+        if v and cnt % 100 == 0:
+            print (cnt,filename)
+
+        #if v: print ('processing_bag:',survey,filename,filename_full, file=sys.stderr)
         add_bag_to_db(cx, filename_full, survey, filename, v)
 
 if __name__ == '__main__':
