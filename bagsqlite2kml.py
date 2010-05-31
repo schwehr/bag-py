@@ -39,6 +39,12 @@ def sqlite2kml(cx,outfile):
           </IconStyle>
         </Style> 
 
+	<Style id="survey_bbox">
+		<LineStyle>
+			<color>ff0074d2</color>
+			<width>2</width>
+		</LineStyle>
+	</Style>
   <Folder>
 ''')
 
@@ -56,7 +62,22 @@ def sqlite2kml(cx,outfile):
         x_center = (ll[0] + ur[0]) / 2.
         y_center = (ll[1] + ur[1]) / 2.
         o.write('''
-        <Folder>
+        <Folder><name>{survey}</name>
+        <Placemark>
+		<name>{survey} bbox</name>
+		<styleUrl>#survey_bbox</styleUrl> 
+		<LineString>
+			<altitudeMode>relativeToGround</altitudeMode>
+			<coordinates>
+{x_min},{y_min},100
+{x_max},{y_min},100
+{x_max},{y_max},100
+{x_min},{y_max},100
+{x_min},{y_min},100
+			</coordinates>
+		</LineString>
+	</Placemark>
+        <Folder><name>{survey} descr</name>
 	<Region>
 		<LatLonAltBox>
 			<north>{y_max}</north>
@@ -74,7 +95,7 @@ def sqlite2kml(cx,outfile):
 		</Lod>
 	</Region>
 	<Placemark>
-		<name>{survey}</name>
+		<name>{survey} descr</name>
                 <styleUrl>#survey_style</styleUrl> 
 		<description>
 <![CDATA[
@@ -100,20 +121,7 @@ Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
 <coordinates>{x_center},{y_center}</coordinates>
 </Point>
         </Placemark>
-	<Placemark>
-		<name>{survey}</name>
-		
-		<LineString>
-			<coordinates>
-{x_min},{y_min},0
-{x_max},{y_min},0
-{x_max},{y_max},0
-{x_min},{y_max},0
-{x_min},{y_min},0
-			</coordinates>
-		</LineString>
-	</Placemark>
-
+        </Folder> <!-- keep the region just to the overview placemark -->
         </Folder>
 
         <Folder> <name>{survey} bags</name>
