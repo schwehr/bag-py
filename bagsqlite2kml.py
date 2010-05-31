@@ -38,7 +38,20 @@ def sqlite2kml(cx,outfile):
             <hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
           </IconStyle>
         </Style> 
-
+''')
+    for i in range(30):
+        o.write('''\t<Style id="survey_{count}_style">
+          <BalloonStyle>
+            <color>ff669999</color>
+            <text>$[description]</text>
+          </BalloonStyle>
+          <IconStyle>
+            <Icon><href>http://nrwais1.schwehr.org/~schwehr/bags/survey-icon-66x66-{count}.png</href></Icon>
+            <hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
+          </IconStyle>
+        </Style>
+'''.format(count=i))
+    o.write('''
 	<Style id="survey_bbox">
 		<LineStyle>
 			<color>ff0074d2</color>
@@ -54,13 +67,16 @@ def sqlite2kml(cx,outfile):
         print ('Processing:',survey)
         ll = [row for row in cx.execute('SELECT MIN(x_min) as x, MIN(y_min) as y FROM bag WHERE survey=:survey;',{'survey':survey})][0]
         ur = [row for row in cx.execute('SELECT MAX(x_max) as x, MAX(y_max) as y FROM bag WHERE survey=:survey;',{'survey':survey})][0]
-        print(ll,ur)
+        #print(ll,ur)
         dr_url = [row['dr_url'] for row in cx.execute('SELECT dr_url FROM bag WHERE survey=:survey LIMIT 1;',{'survey':survey})][0]
-        print (dr_url)
+        #print (dr_url)
         x_min, y_min = ll
         x_max, y_max = ur
         x_center = (ll[0] + ur[0]) / 2.
         y_center = (ll[1] + ur[1]) / 2.
+
+        bag_count = [row for row in cx.execute('SELECT COUNT(*) as bag_count FROM bag WHERE survey=:survey;',{'survey':survey})][0]['bag_count']
+        print ('bag_count:',bag_count)
         o.write('''
         <Folder><name>{survey}</name>
         <Placemark>
@@ -95,8 +111,8 @@ def sqlite2kml(cx,outfile):
 		</Lod>
 	</Region>
 	<Placemark>
-		<name>{survey} descr</name>
-                <styleUrl>#survey_style</styleUrl> 
+		<name>{survey}</name>
+                <styleUrl>#survey_{bag_count}_style</styleUrl> 
 		<description>
 <![CDATA[
 <p><b>Summary for Survey: {survey}</b></p>
