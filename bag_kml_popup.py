@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import sys, os
 import osgeo.gdal
 import osgeo.gdalconst
@@ -10,7 +12,7 @@ import matplotlib.pyplot as plt
 __version__='0.1'
 __date__='?'
 
-def get_template_data(survey, basename, urlbase, verbose):
+def get_template_data(bag_file, survey, basename, urlbase, verbose):
 
     if urlbase is None:
         urlbase = ''
@@ -18,7 +20,11 @@ def get_template_data(survey, basename, urlbase, verbose):
         urlbase += '/'
     url = urlbase
 
-    patch_name= basename
+    patch_name = basename.split('/')[-1]
+    print ('base_name',basename)
+    print ('patch_name',patch_name)
+    #sys.exit('EARLY')
+
     td = {} # template_dict/data
     #td['urlbase'] = 'http://nrwais1.schwehr.org/~schwehr/bags/H10001-H12000/{survey}/{patch}'.format(survey=survey, patch=patch_name)
     td['survey'] = survey
@@ -31,17 +37,16 @@ def get_template_data(survey, basename, urlbase, verbose):
 
     # NGDC download bag link
     td['bag_url'] = 'http://surveys.ngdc.noaa.gov/mgg/NOS/coast/H10001-H12000/{survey}/BAG/{basename}.bag.gz'.format(**td)
-    print td['bag_url']
+    #print ('bag_rl:'.td['bag_url'])
 
     td['dr_url'] = 'http://surveys.ngdc.noaa.gov/mgg/NOS/coast/H10001-H12000/{survey}/DR/{survey}.pdf'.format(**td)
-    print td['dr_url']
+    #print ('dr_url:',td['dr_url'])
 
     #td['info'] = url +  patch_name + '.info.txt'
 
     osgeo.gdal.AllRegister()
-    #print 'patch_name:',patch_name
-    print 'WARNING: this part probably will NOT work until gdal 1.7.0'
-    bag = osgeo.gdal.Open(patch_name + '.bag')
+
+    bag = osgeo.gdal.Open(bag_file)
     assert bag
     gt_bag =  bag.GetGeoTransform()
     td['dx_m'] = '%02.1f' % gt_bag[1]
@@ -52,7 +57,7 @@ def get_template_data(survey, basename, urlbase, verbose):
     td['h'] = h
 
 
-    print 'Opening:',patch_name + '.tif'
+    print ('Opening:',patch_name + '.tif')
     patch = osgeo.gdal.Open(patch_name + '.tif')
     if patch is None:
         raise ValueError('Unable to open patch')
@@ -63,7 +68,7 @@ def get_template_data(survey, basename, urlbase, verbose):
     gt =  patch.GetGeoTransform()
     gt_dict = {'ul_x':gt[0], 'x_res':gt[1], 'ul_y':gt[3], 'y_res':gt[5]}
     if verbose:
-        print gt_dict
+        print (gt_dict)
 
     dx = gt[1]
     x0 = gt[0]
@@ -92,11 +97,11 @@ def get_template_data(survey, basename, urlbase, verbose):
 
     return td
 
-def histogram_gdal_direct(basename,verbose):
+def histogram_gdal_direct(bag_file, patch_name,verbose):
     # This is the one 
     'Plot the depth histogram.  Use the tif until gdal 1.7.0 comes out'
 
-    patch = osgeo.gdal.Open(basename + '.bag')
+    patch = osgeo.gdal.Open(bag_file)
     band = patch.GetRasterBand(1)
     bandmin,bandmax = band.ComputeRasterMinMax()
     hist = band.GetDefaultHistogram()
@@ -111,20 +116,20 @@ def histogram_gdal_direct(basename,verbose):
     xticks = ['%02.1f' % depth for depth in  np.arange(hist[0],hist[1],(hist[1]-hist[0])/5)]
     xticks.append('%.1f' % hist[1])
     if verbose:
-        print xticks  # Why is the 0.0 tick not showing?
+        print (xticks)  # Why is the 0.0 tick not showing?
     plt.xticks([val * len(hist_vals)/5 for val in range(len(xticks))],xticks) # Yuck!
     plt.fill(range(len(hist_vals)),hist_vals)
     plt.grid(True)
-    plt.savefig(basename+'-hist.png') #,dpi=50)
-    with file(basename+'.hist','w') as o:
+    plt.savefig(patch_name+'-hist.png') #,dpi=50)
+    with file(patch_name+'.hist','w') as o:
         o.write('\n'.join([str(v) for v in hist_vals]))
 
 
-def histogram_gdal_info_file(basename,verbose):
+def histogram_gdal_info_file(patch, verbose):
     'Plot the depth histogram.  Use the tif until gdal 1.7.0 comes out'
     # This one to use the svn gdal with bag support.  
 
-    with file(basename+'.bag.info.txt') as info:
+    with file(patch+'.bag.info.txt') as info:
         line = info.readline()
         while 'buckets' not in line:
             line = info.readline()
@@ -140,7 +145,7 @@ def histogram_gdal_info_file(basename,verbose):
 
         #print
 
-    print hist
+    #print (hist)
     hist_vals = hist[:-1]
     while hist_vals[-1] == 0:
         hist_vals.pop()
@@ -148,7 +153,7 @@ def histogram_gdal_info_file(basename,verbose):
     xticks = ['%02.1f' % depth for depth in  np.arange(minval,maxval,(maxval-minval)/5)]
     xticks.append('%.1f' % maxval)
     if verbose:
-        print xticks  # Why is the 0.0 tick not showing?
+        print (xticks)  # Why is the 0.0 tick not showing?
     plt.xticks([val * len(hist_vals)/5 for val in range(len(xticks))],xticks) # Yuck!
     #print 'plotting:',range(len(hist_vals)),hist_vals
     x = [0,] + range(len(hist_vals)) + [len(hist_vals),]
@@ -157,10 +162,10 @@ def histogram_gdal_info_file(basename,verbose):
     plt.grid(True)
     plt.xlabel('Depth (m)')
     plt.ylabel('Cell counts')
-    plt.title ('Histogram of cell depths for '+basename)
+    plt.title ('Histogram of cell depths for '+patch)
 
-    plt.savefig(basename+'-hist.png') #,dpi=50)
-    with file(basename+'.hist','w') as o:
+    plt.savefig(patch+'-hist.png') #,dpi=50)
+    with file(patch+'.hist','w') as o:
         o.write('\n'.join([str(v) for v in hist_vals]))
 
 #     with file(basename+'.hist2','w') as o:
@@ -179,7 +184,7 @@ def get_parser():
                           version="%prog "+__version__+' ('+__date__+')')
 
     parser.add_option('-b','--bag',
-                      help= 'Bag file in the survey')
+                      help= 'Bag file in the survey with path')
 
     parser.add_option('-k','--kml-template',
                       help= 'Template file to fill in [default: %default]')
@@ -203,19 +208,22 @@ if __name__ == '__main__':
     
     (options, args) = get_parser().parse_args()
 
-    print 'bag:',options.bag
+    patch = os.path.basename(options.bag).split('.')[0] # just something like H11124_5m
+    print ('patch:',patch)
+    print ('bag:',options.bag)
     basename = options.bag[:-4]
-    template_data = get_template_data(options.survey, basename, options.base_url, options.verbose)
+    template_data = get_template_data(options.bag, options.survey, basename, options.base_url, options.verbose)
     if options.verbose:
-        print 'template_data:',template_data
+        print ('template_data:',template_data)
 
     kml_content = file(options.kml_template).read().format(**template_data)
 
     if options.output_kml is None:
-        print kml_content
+        print (kml_content)
     else:
         with file(options.output_kml,'w') as kml:
             kml.write( kml_content )
 
     #histogram(basename,options.verbose)
-    histogram_gdal_info_file(basename,options.verbose)
+    histogram_gdal_info_file(patch, options.verbose)
+    #histogram_gdal_direct(options.bag, patch)

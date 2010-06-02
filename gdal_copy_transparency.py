@@ -79,7 +79,7 @@ def main():
     parser.add_option('-H', '--hillshade', help='gdaldem hillshade geotiff')
     parser.add_option('-o', '--outfile', help='The resulting file to create.  '
                       + '[default: hillshade+"-alpha.tif"')
-    parser.add_option('-v', '--verbose', default=False, action='store_true', help='run the tests run in verbose mode')
+    parser.add_option('-v', '--verbose', default=False, action='store_true', help='run in verbose mode')
     (options, args) = parser.parse_args()
     v = options.verbose
 
@@ -94,6 +94,5 @@ def main():
 
 if __name__ == '__main__':
     osgeo.gdal.AllRegister()
-    #print ('hello')
     main()
 
