@@ -5,7 +5,7 @@ __author__ = 'Kurt Schwehr'
 __version__ = '$Revision: 2275 $'.split()[1]
 __revision__  = __version__ # For pylint
 __date__ = '$Date: 2006-07-10 16:22:35 -0400 (Mon, 10 Jul 2006) $'.split()[1]
-__copyright__ = '2008'
+__copyright__ = '2010'
 __license__   = 'GPL v3'
 __contact__   = 'kurt at ccom.unh.edu'
 
