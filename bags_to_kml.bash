@@ -54,6 +54,9 @@ for compressed_file in `cat find.bag`; do
            echo "The thumbs will be broken and the web page will not have the required images"
         else
             # Okay to generate a tif and do other stuff
+            # EvenR suggested "-dstnodata 0" to help with the hillshade.
+            # or gdal_translate -a_nodata -1 H11296_5m-depths-f32.tif H11296_5m-depths-f32-with-nodata.tif
+            # But that did not work for me.
             gdalwarp -ot Float32 -t_srs EPSG:4326  $patch.bag ${patch}-depths-f32.tif
             echo "FIX: make the color-relief use a ramp that is specific to each patch with gmt and cpt"
             gdaldem color-relief ${patch}-depths-f32.tif ../../color_ramp_fixed.dat  ${patch}-color-relief.tif -alpha -co ALPHA=YES
