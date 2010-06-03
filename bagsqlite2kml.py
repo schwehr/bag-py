@@ -39,7 +39,7 @@ def sqlite2kml(cx,outfile):
           </IconStyle>
         </Style> 
 ''')
-    for i in range(30):
+    for i in range(70):
         o.write('''\t<Style id="survey_{count}_style">
           <BalloonStyle>
             <color>ff669999</color>
