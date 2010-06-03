@@ -96,7 +96,7 @@ for bag_file in `cat find.bag`; do
         fi
         # Back to non-tif requiring items
 
-
+        mv ${patch}.tif ..
         # Cleanup
         rm -f ${patch}-hist.png
         rm -f ${patch}*-tmp.{jpg,png}
