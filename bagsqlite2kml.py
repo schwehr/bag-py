@@ -8,7 +8,10 @@ from __future__ import print_function
 import sys,os
 import sqlite3
 
-def sqlite2kml(cx,outfile):
+def sqlite2kml(cx,outfile,
+               #icon_base_url = 'http://nrwais1.schwehr.org/~schwehr/bags',
+               icon_base_url = 'file:///Users/schwehr/projects/src/bag-py',
+               custom_products_base_url = 'file:///Users/schwehr/projects/src/bag-py/processed'):
     cx.row_factory = sqlite3.Row
 
     o = outfile
@@ -23,7 +26,7 @@ def sqlite2kml(cx,outfile):
             <text>$[description]</text>
           </BalloonStyle>
           <IconStyle>
-            <Icon><href>http://nrwais1.schwehr.org/~schwehr/bags/bag-icon-66x66.png</href></Icon>
+            <Icon><href>{icon_base_url}/bag-icon-66x66.png</href></Icon>
             <hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
           </IconStyle>
         </Style> 
@@ -34,11 +37,12 @@ def sqlite2kml(cx,outfile):
             <text>$[description]</text>
           </BalloonStyle>
           <IconStyle>
-            <Icon><href>http://nrwais1.schwehr.org/~schwehr/bags/survey-icon-66x66.png</href></Icon>
+            <Icon><href>{icon_base_url}/survey-icon-66x66.png</href></Icon>
             <hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
           </IconStyle>
         </Style> 
-''')
+'''.format(**locals()) )
+            
     for i in range(70):
         o.write('''\t<Style id="survey_{count}_style">
           <BalloonStyle>
@@ -46,11 +50,12 @@ def sqlite2kml(cx,outfile):
             <text>$[description]</text>
           </BalloonStyle>
           <IconStyle>
-            <Icon><href>http://nrwais1.schwehr.org/~schwehr/bags/survey-icon-66x66-{count}.png</href></Icon>
+            <Icon><href>{icon_base_url}/survey-icon-66x66-{count}.png</href></Icon>
             <hotSpot x="0.5" y="0.5" xunits="fraction" yunits="fraction"/>
           </IconStyle>
         </Style>
-'''.format(count=i))
+'''.format(count=i, **locals()))
+            
     o.write('''
 	<Style id="survey_bbox">
 		<LineStyle>
@@ -76,7 +81,10 @@ def sqlite2kml(cx,outfile):
         y_center = (ll[1] + ur[1]) / 2.
 
         bag_count = [row for row in cx.execute('SELECT COUNT(*) as bag_count FROM bag WHERE survey=:survey;',{'survey':survey})][0]['bag_count']
-        print ('bag_count:',bag_count)
+        #print ('bag_count:',bag_count)
+        
+        survey_url = dr_url[:dr_url.rfind('/')].rstrip('DR')
+        #print ('\t',survey_url)
         o.write('''
         <Folder><name>{survey}</name>
         <Placemark>
@@ -120,14 +128,15 @@ def sqlite2kml(cx,outfile):
   <tr><td>Lower left</td><td>{ll[0]} {ll[1]}</td></tr>
   <tr><td>Upper right</td><td>{ur[0]} {ur[1]}</td></tr>
   <tr><td>Descriptive report</td><td><a href="{dr_url}">{survey}.pdf</a> [NGDC]</td></tr>
+  <tr><td>Survey directory</td><td><a href="{survey_url}">{survey}</a> [NGDC]</td></tr>
 </table>
 ]]>
 <hr/>
 <center>
 <table>
   <tr>
-    <td><a href="http://ccom.unh.edu/"><img src="http://nrwais1.schwehr.org/~schwehr/bags/ccom-logo-border.png"/></a></td>
-    <td><a href="http://noaa.gov/"><img src="http://nrwais1.schwehr.org/~schwehr/bags/noaa-logo-border.png"/></a></td>
+    <td><a href="http://ccom.unh.edu/"><img src="{icon_base_url}/ccom-logo-border.png"/></a></td>
+    <td><a href="http://noaa.gov/"><img src="{icon_base_url}/noaa-logo-border.png"/></a></td>
   </tr>
 </table>
 Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
@@ -166,20 +175,39 @@ Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
             x_min = bag['x_min']; x_max = bag['x_max']; x_center = (x_min + x_max) / 2
             y_min = bag['y_min']; y_max = bag['y_max']; y_center = (y_min + y_max) / 2
             file = bag['file']
-            print ('\t',x_min,y_min,x_max,y_max,'->',x_center,y_center,'\t',file)
+            #print ('\t',x_min,y_min,x_max,y_max,'->',x_center,y_center,'\t',file)
+
+            base_tmp = custom_products_base_url + '/' + survey + '/' + bag['file']
+            image = base_tmp + '.jpg'
+            thumb = base_tmp + '-thumb.jpg'          
+            hist = base_tmp + '-hist.jpg'          
+            hist_thumb = base_tmp + '-hist-thumb.jpg'          
+
+            #gdal_info_url = custom_products_base_url + '/' + survey + '
+            bag = dict(bag)
+            bag.update(locals()) # Pull in survey url and such
             o.write('''
 	<Placemark>
         <name>{file}</name>
                 <styleUrl>#bag_style</styleUrl> 
 		<description>
 <![CDATA[
+<table><tr>
+    <td><a href="{image}"><img src="{thumb}"/></a></td>
+    <td><a href="{hist}"><img src="{hist_thumb}"/></a></td>
+</tr></table>
+
 <p><b>Summary for BAG: {file}</b></p>
 <table border="1">
+  <tr><td>Resolution</td><td>{dx} x {dy} (m/cell)</td></tr> 
+  <tr><td>Cells </td><td>{width} x {height} (m)</td></tr>
   <tr><td>Lower left</td><td>{ll[0]} {ll[1]}</td></tr>
   <tr><td>Upper right</td><td>{ur[0]} {ur[1]}</td></tr>
   <tr><td>Descriptive report</td><td><a href="{dr_url}">{survey}.pdf</a> [NGDC]</td></tr>
+  <tr><td>gdalinfo</td><td><a href="{base_tmp}.bag.info.txt">{file}.bag.info.txt</a></td></tr>
+  <tr><td>xml metadata</td><td><a href="{base_tmp}.metadata.xml">{file}.metadata.xml</a></td></tr>
+  <tr><td>Download bag</td><td><a href="{bag_url}">{file}.bag.gz</a> [NGDC]</td></tr>
 </table>
-]]>
 <hr/>
 <center>
 <table>
@@ -190,6 +218,7 @@ Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
 </table>
 Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
 </center>
+]]>
 </description>
 <Point>
 <coordinates>{x_center},{y_center}</coordinates>
@@ -210,7 +239,8 @@ Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
 		</LineString>
 	</Placemark>
 
-'''.format(**locals()) ) # survey=survey, ll=ll, ur=ur, dr_url=dr_url))
+'''.format(**bag) ) # survey=survey, ll=ll, ur=ur, dr_url=dr_url))
+#'''.format(**locals()) ) # survey=survey, ll=ll, ur=ur, dr_url=dr_url))
 
         o.write('\t</Folder>\n')
 
@@ -236,8 +266,8 @@ if __name__ == '__main__':
     <td><a href="{histogram}"><img src="{histogram_thumb}"/></a></td>
 </tr></table>
 <p><b>Summary for BAG: {bag}</b></p>
-<table border="1"><!-- <tr><td>Resolution</td><td>{dx_m} x {dy_m} (m)</td></tr> -->
-  <!-- <tr><td>Cell </td><td>x x y (m)</td></tr> -->
+<table border="1"><tr><td>Resolution</td><td>{dx_m} x {dy_m} (m)</td></tr> -->
+  <!-- <tr><td>Cells </td><td>x x y (m)</td></tr> -->
   <tr><td>Lower left</td><td>{x0} {y0}</td></tr>
   <tr><td>Upper right</td><td>{x1} {y1}</td></tr>
   <tr><td>gdalinfo</td><td><a href="{url}{bag}.info.txt">{bag}.info.txt</a></td></tr>

@@ -89,6 +89,8 @@ for bag_file in `cat find.bag`; do
             ../../bag_kml_popup.py  -b $bag_file -s $survey -k ../../template.kml \
                 -u http://nrwais1.schwehr.org/~schwehr/bags/H10001-H12000/${survey}/ \
                 -v -o $patch.kml
+            #convert ${patch}-hist.png ${patch}-hist.gif
+            #convert -resize 200x200 ${patch}-hist.png ${patch}-hist-thumb-tmp.gif
             convert -resize 200x200 ${patch}-hist.png ${patch}-hist-thumb-tmp.jpg
             convert -border 2x2x2x2 -bordercolor black ${patch}-hist-thumb-tmp.jpg ${patch}-hist-thumb.jpg
             convert ${patch}-hist.png ${patch}-hist.jpg
