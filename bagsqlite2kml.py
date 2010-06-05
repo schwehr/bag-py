@@ -292,9 +292,8 @@ def sqlite2kml_tiled(cx, outfile,
 </NetworkLink>
         '''.format(**bag))
 
-        
+    #   </Folder>
     o.write('''
-  </Folder>
 </Document>
 </kml>
 ''')
