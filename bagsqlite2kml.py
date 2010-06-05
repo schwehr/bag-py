@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+__author__ = 'Kurt Schwehr'
+__version__ = '$Revision: 2275 $'.split()[1]
+__revision__  = __version__ # For pylint
+__date__ = '$Date: 2006-07-10 16:22:35 -0400 (Mon, 10 Jul 2006) $'.split()[1]
+__copyright__ = '2010'
+__license__   = 'GPL v3'
+__contact__   = 'kurt at ccom.unh.edu'
+
+
 # since 2010-May-28
 
 # Use the sqlite3 db rather than the bads to go much faster and allow for easier development
@@ -8,8 +17,7 @@ from __future__ import print_function
 import sys,os
 import sqlite3
 
-def sqlite2kml(cx,outfile,
-               #icon_base_url = 'http://nrwais1.schwehr.org/~schwehr/bags',
+def sqlite2kml_bbox_and_placemark(cx,outfile,
                icon_base_url = 'file:///Users/schwehr/projects/src/bag-py',
                custom_products_base_url = 'file:///Users/schwehr/projects/src/bag-py/processed'):
     cx.row_factory = sqlite3.Row
@@ -18,7 +26,7 @@ def sqlite2kml(cx,outfile,
     o.write('''<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://earth.google.com/kml/2.1">
 <Document>
-	<name>NOAA BAGs</name>
+	<name>NOAA BAGs - Summaries</name>
         <!-- BAG visualization by Kurt Schwehr -->
         <Style id="bag_style">
           <BalloonStyle>
@@ -251,44 +259,74 @@ Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
 ''')
     return
 
-if __name__ == '__main__':
-    cx = sqlite3.connect('bags.sqlite')
-    sqlite2kml(cx, open('out.kml','w'))
 
-'''
-	<Placemark>
-		<name>{basename}</name>
-                <styleUrl>#bag_style</styleUrl> 
-		<description>
-<![CDATA[
-<table><tr>
-    <td><a href="{image}"><img src="{thumb}"/></a></td>
-    <td><a href="{histogram}"><img src="{histogram_thumb}"/></a></td>
-</tr></table>
-<p><b>Summary for BAG: {bag}</b></p>
-<table border="1"><tr><td>Resolution</td><td>{dx_m} x {dy_m} (m)</td></tr> -->
-  <!-- <tr><td>Cells </td><td>x x y (m)</td></tr> -->
-  <tr><td>Lower left</td><td>{x0} {y0}</td></tr>
-  <tr><td>Upper right</td><td>{x1} {y1}</td></tr>
-  <tr><td>gdalinfo</td><td><a href="{url}{bag}.info.txt">{bag}.info.txt</a></td></tr>
-  <tr><td>xml metadata</td><td><a href="{url}{metadata_xml}">{metadata_xml}</a></td></tr>
-  <tr><td>Download bag</td><td><a href="{bag_url}">{survey}.bag.gz</a> [NGDC]</td></tr>
-  <tr><td>Descriptive report</td><td><a href="{dr_url}">{survey}.pdf</a> [NGDC]</td></tr>
-</table>
-]]>
-<hr/>
-<center>
-<table>
-  <tr>
-    <td><a href="http://ccom.unh.edu/"><img src="http://nrwais1.schwehr.org/~schwehr/bags/ccom-logo-border.png"/></a></td>
-    <td><a href="http://noaa.gov/"><img src="http://nrwais1.schwehr.org/~schwehr/bags/noaa-logo-border.png"/></a></td>
-  </tr>
-</table>
-Visualization by: <a href="http://schwehr.org/">Kurt Schwehr et al.</a>
-</center>
-</description>
-<Point>
-<coordinates>{x_center},{y_center}</coordinates>
-</Point>
-</Placemark>
-'''
+################################################################################
+# Tiled
+####
+def sqlite2kml_tiled(cx, outfile,
+                     custom_products_base_url = 'file:///Users/schwehr/projects/src/bag-py/processed'):
+
+    cx.row_factory = sqlite3.Row
+
+    o = outfile
+    o.write('''<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://earth.google.com/kml/2.1">
+<Document>
+	<name>NOAA BAGs - Tiled</name>
+        <!-- BAG visualization by Kurt Schwehr -->
+''')
+
+    for cnt,bag in enumerate(cx.execute('SELECT * FROM bag;')):
+        if cnt % 200 == 0: print (cnt)
+        #print ('\t',bag['x_min'],bag['y_min'],bag['x_max'],bag['y_max'],bag['file'])
+        x_min = bag['x_min']; x_max = bag['x_max']; x_center = (x_min + x_max) / 2
+        y_min = bag['y_min']; y_max = bag['y_max']; y_center = (y_min + y_max) / 2
+        file = bag['file']
+        bag = dict(bag)
+        tile_url = custom_products_base_url + '/' +bag['survey'] + '/' + file + '/' + file + '-bathy.kml'
+        bag.update(locals())
+        # FIX: possibly add a region to the network link to prevent loading from the server
+        o.write('''
+<NetworkLink>
+  <Link><href>{tile_url}</href></Link>
+</NetworkLink>
+        '''.format(**bag))
+
+        
+    o.write('''
+  </Folder>
+</Document>
+</kml>
+''')
+    return
+
+
+def main():
+    from optparse import OptionParser
+    parser = OptionParser(usage="%prog [options] file1.bag [file2.bag] ...",
+                          version="%prog "+__version__+' ('+__date__+')')
+    # FIX: need to somehow allow for surveys that are in multiple subfolders
+    parser.add_option('--custom-products-url', default='http://nrwais1.schwehr.org/~schwehr/bags/H10001-H12000/', help=' [default: %default]')
+    parser.add_option('--icon-url', default='http://nrwais1.schwehr.org/~schwehr/bags/', help=' [default: %default]')
+    parser.add_option('-d', '--database', default='bags.sqlite', help='Sqlite3 database to use')
+    parser.add_option('-v', '--verbose', default=False, action='store_true', help='run the tests run in verbose mode')
+
+    parser.add_option('--bbox-and-placemark-kml', default='bag_summary.kml', help=' [default: %default]')
+    parser.add_option('--tiled-kml', default='bag_surveys.kml', help=' [default: %default]')
+    #parser.add_option('--', default=, help=' [default: %default]')
+
+
+    (options, args) = parser.parse_args()
+    v = options.verbose
+
+    cx = sqlite3.connect(options.database)
+
+    sqlite2kml_bbox_and_placemark(cx, open(options.bbox_and_placemark_kml,'w'),
+                                  options.icon_url, options.custom_products_url)
+
+    sqlite2kml_tiled(cx, open(options.tiled_kml,'w'),
+                     options.custom_products_url)
+
+
+if __name__ == '__main__':
+    main()

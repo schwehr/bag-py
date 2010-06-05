@@ -223,7 +223,7 @@ def main():
     (options, args) = parser.parse_args()
     v = options.verbose
     
-    cx = sqlite3.connect('bags.sqlite')
+    cx = sqlite3.connect(options.database)
     #cx.row_factory = sqlite3.Row
 
     create_table(cx)
