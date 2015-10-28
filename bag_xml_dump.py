@@ -4,8 +4,8 @@ __version__ = '$Revision: 2275 $'.split()[1]
 __revision__  = __version__ # For pylint
 __date__ = '$Date: 2006-07-10 16:22:35 -0400 (Mon, 10 Jul 2006) $'.split()[1]
 __copyright__ = '2008'
-__license__   = 'GPL v3'
-__contact__   = 'kurt at ccom.unh.edu'
+__license__   = 'Apache 2.0'
+__contact__   = 'schwehr@gmail.com'
 
 __doc__='''
 Create a bounding box and thumb tack for a Bathymetric Attributed Grid (BAG)
@@ -21,7 +21,7 @@ Create a bounding box and thumb tack for a Bathymetric Attributed Grid (BAG)
 '''
 import sys,os
 from StringIO import StringIO
-from lxml import etree 
+from lxml import etree
 import h5py
 
 # FIX: make this a proper script
